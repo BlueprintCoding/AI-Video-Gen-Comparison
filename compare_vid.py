@@ -112,6 +112,11 @@ class VideoComparerApp:
         cancel_button = ctk.CTkButton(button_frame, text="Cancel Grading", command=self.cancel_grading)
         cancel_button.pack(side="left", padx=5)
 
+        # Add a label for grading progress
+        self.grading_progress_label = ctk.CTkLabel(self.playback_frame, text="Grading Progress: 0/0", font=("Arial", 14))
+        self.grading_progress_label.grid(row=4, column=0, pady=5)
+        
+        #Play Canvas
         self.canvas = ctk.CTkCanvas(self.playback_frame, bg="#2b2b2b", height=720, width=416)
         self.canvas.grid(row=2, column=0, pady=5)
 
@@ -122,6 +127,14 @@ class VideoComparerApp:
         ctk.CTkButton(self.controls_frame, text="Average", command=lambda: self.mark_video("Average")).grid(row=0, column=1, padx=5)
         ctk.CTkButton(self.controls_frame, text="Good", command=lambda: self.mark_video("Good")).grid(row=0, column=2, padx=5)
         ctk.CTkButton(self.controls_frame, text="Skip", command=self.skip_video).grid(row=0, column=3, padx=5)
+
+        # Add a label to explain the grading keys
+        self.key_hint_label = ctk.CTkLabel(
+            self.controls_frame,
+            text="Key bindings: 1 = Bad, 2 = Average, 3 = Good, . = Skip",
+            font=("Arial", 10),
+        )
+        self.key_hint_label.grid(row=1, column=0, columnspan=4, pady=0)
 
         self.current_video_index = 0
         self.videos = []
@@ -553,11 +566,25 @@ class VideoComparerApp:
         self.media_player = self.vlc_instance.media_player_new()
         self.media_player.set_hwnd(self.canvas.winfo_id())
 
+        # Bind number keypad keys and standard number keys for grading
+        self.root.bind("1", lambda event: self.mark_video("Bad"))
+        self.root.bind("<KP_1>", lambda event: self.mark_video("Bad"))
+        self.root.bind("2", lambda event: self.mark_video("Average"))
+        self.root.bind("<KP_2>", lambda event: self.mark_video("Average"))
+        self.root.bind("3", lambda event: self.mark_video("Good"))
+        self.root.bind("<KP_3>", lambda event: self.mark_video("Good"))
+        self.root.bind(".", lambda event: self.skip_video())
+        self.root.bind("<KP_Decimal>", lambda event: self.skip_video())
         self.play_video()
+
+        self.current_video_index = 0
+        self.grading_progress_label.configure(text=f"Grading Progress: {self.current_video_index}/{len(self.videos_to_grade)}")
+
 
     def play_video(self):
         """Play the current video."""
         if self.current_video_index < len(self.videos_to_grade):
+            self.grading_progress_label.configure(text=f"Grading Progress: {self.current_video_index + 1}/{len(self.videos_to_grade)}")
             self.current_video_path = self.videos_to_grade[self.current_video_index]
             print(f"Playing video: {self.current_video_path}")
     
@@ -646,6 +673,7 @@ class VideoComparerApp:
     def skip_video(self):
         """Skip the current video."""
         self.current_video_index += 1
+        self.grading_progress_label.configure(text=f"Grading Progress: {self.current_video_index}/{len(self.videos_to_grade)}")
         self.play_video()
 
 
@@ -671,12 +699,15 @@ class VideoComparerApp:
 
         # Proceed to the next video
         self.current_video_index += 1
+        self.grading_progress_label.configure(text=f"Grading Progress: {self.current_video_index}/{len(self.videos_to_grade)}")
         self.play_video()
 
 
     def finish_grading(self):
         """Finalize grading process."""
         self.media_player.stop()
+        self.grading_progress_label.configure(text="Grading Complete")  # Update label to indicate completion
+        self.unbind_grading_keys()
         messagebox.showinfo("Completed", f"All videos graded and moved to:\n{self.graded_folder}")
         self.refresh_video_list()
 
@@ -711,10 +742,22 @@ class VideoComparerApp:
             self.stop_loop.set()
             if self.media_player:
                 self.media_player.stop()
+            self.unbind_grading_keys()
             self.refresh_video_list()
             messagebox.showinfo("Cancelled", "Grading process has been cancelled and videos restored to input folder.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to cancel grading: {e}")
+
+    def unbind_grading_keys(self):
+        """Unbind grading keys."""
+        self.root.unbind("1")
+        self.root.unbind("<KP_1>")
+        self.root.unbind("2")
+        self.root.unbind("<KP_2>")
+        self.root.unbind("3")
+        self.root.unbind("<KP_3>")
+        self.root.unbind(".")
+        self.root.unbind("<KP_Decimal>")
 
 
     def open_settings(self):
