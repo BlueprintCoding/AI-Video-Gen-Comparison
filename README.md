@@ -63,7 +63,12 @@ KNOWN BUGS: Occassionally crashes when a ton of videos are loaded and you manage
 
 ## Project Structure
 
-├── compare_vid.py # Main Python script for the Video Comparer App. ├── config.json # Configuration file (auto-generated on first run). ├── input/ # Directory for input videos. ├── output/ # Directory for generated comparisons and graded videos. ├── run_app.bat # Batch file for setup and launching the application. └── README.md # This readme file.
+├── compare_vid.py # Main Python script for the Video Comparer App. 
+├── config.json # Configuration file (auto-generated on first run). 
+├── input/ # Directory for input videos. 
+├── output/ # Directory for generated comparisons and graded videos. 
+├── run_app.bat # Batch file for setup and launching the application. 
+└── README.md # This readme file.
 
 
 ## Usage
@@ -101,10 +106,6 @@ KNOWN BUGS: Occassionally crashes when a ton of videos are loaded and you manage
 - **Video Playback:**  
   Confirm that the required Python packages are installed and that videos are in supported formats.
 
-## License
+## Warranty
 
-[Include license information here, if applicable.]
-
-## Contact
-
-For questions or support, please contact [Your Contact Information].
+- There is no warranty, use at your own risk
