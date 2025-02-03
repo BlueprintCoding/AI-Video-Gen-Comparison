@@ -300,13 +300,35 @@ class VideoComparerApp:
         max_frame_rate = max(frame_rates)
         speed_factors = [duration / shortest_duration for duration in durations]
 
+        # Add this block before generating filters to determine the minimum height among videos:
+        heights = []
+        for file in videos:
+            height_cmd = [
+                "ffprobe", "-v", "error", "-select_streams", "v:0",
+                "-show_entries", "stream=height", "-of", "csv=p=0", file
+            ]
+            height_result = subprocess.run(height_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            try:
+                heights.append(int(height_result.stdout.strip()))
+            except ValueError:
+                heights.append(720)  # fallback height if retrieval fails
+
+        target_height = min(heights)  # Set target height to the shortest video height
+
+        # Replace the filters generation block with the following code:
         filters = []
         for i, (speed, text_var) in enumerate(zip(speed_factors, text_inputs)):
-            padded_height = "ih+50"
-            text_overlay = f",drawtext=fontfile=/path/to/font.ttf:fontsize=24:fontcolor=white:x=(w-text_w)/2:y=h-40:text='{text_var.get()}'" if text_var.get() else ""
-            filters.append(f"[{i}:v]fps={max_frame_rate},scale=trunc(iw/2)*2:trunc(ih/2)*2,pad=iw:{padded_height}:0:0:black,setpts=PTS/{speed}{text_overlay}[v{i}]")
+            text_overlay = (
+                f",drawtext=fontfile=/path/to/font.ttf:fontsize=24:fontcolor=white:x=(w-text_w)/2:y=h-40:text='{text_var.get()}'"
+                if text_var.get() else ""
+            )
+            filters.append(
+                f"[{i}:v]fps={max_frame_rate},scale=trunc(iw*{target_height}/ih/2)*2:{target_height}"
+                f"{text_overlay}[v{i}]"
+            )
 
         filter_graph = ";".join(filters) + f";{''.join(f'[v{i}]' for i in range(len(videos)))}hstack=inputs={len(videos)}"
+
         ffmpeg_cmd = [
             "ffmpeg",
             *[arg for video in videos for arg in ("-i", video)],
@@ -326,6 +348,8 @@ class VideoComparerApp:
 
         for video in videos:
             os.rename(video, os.path.join(output_subdir, os.path.basename(video)))
+        
+        self.refresh_video_list()  # Refresh the list since files have been moved
 
     def show_video_player(self, output_file, videos, output_subdir,labels):
         """Show the video player with scrubbing, notes, and a best video selection."""
